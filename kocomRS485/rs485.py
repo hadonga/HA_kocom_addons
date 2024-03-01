@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-'''
-python -m pip install pyserial
-python -m pip install paho-mqtt
-'''
 import os
 import os.path
 import serial
@@ -19,21 +15,21 @@ import paho.mqtt.client as mqtt
 from collections import OrderedDict
 
 # Version
-SW_VERSION = 'RS485 Compilation 1.0.3b'
+SW_VERSION = 'RS485 Compilation 0.1'
 # Log Level
 CONF_LOGLEVEL = 'info' # debug, info, warn
 
 ###############################################################################################################
 ################################################## K O C O M ##################################################
-# 본인에 맞게 수정하세요
+# Set initial values 
 
 # 보일러 초기값
-INIT_TEMP = 22
+INIT_TEMP = 21
 # 환풍기 초기속도 ['low', 'medium', 'high']
-DEFAULT_SPEED = 'medium'
+DEFAULT_SPEED = 'low'
 # 조명 / 플러그 갯수
-KOCOM_LIGHT_SIZE            = {'livingroom': 3, 'bedroom': 2, 'room1': 2, 'room2': 2, 'kitchen': 3}
-KOCOM_PLUG_SIZE             = {'livingroom': 2, 'bedroom': 2, 'room1': 2, 'room2': 2, 'kitchen': 2}
+KOCOM_LIGHT_SIZE = {'livingroom': 3, 'bedroom': 2, 'room1': 2, 'room2': 2, 'kitchen': 3}
+KOCOM_PLUG_SIZE = {'livingroom': 2, 'bedroom': 2, 'room1': 2, 'room2': 2, 'kitchen': 2}
 
 # 방 패킷에 따른 방이름 (패킷1: 방이름1, 패킷2: 방이름2 . . .)
 # 월패드에서 장치를 작동하며 방이름(livingroom, bedroom, room1, room2, kitchen 등)을 확인하여 본인의 상황에 맞게 바꾸세요
@@ -44,6 +40,8 @@ KOCOM_ROOM_THERMOSTAT       = {'00': 'livingroom', '01': 'bedroom', '02': 'room1
 # TIME 변수(초)
 SCAN_INTERVAL = 300         # 월패드의 상태값 조회 간격
 SCANNING_INTERVAL = 0.8     # 상태값 조회 시 패킷전송 간격
+###############################################################################################################
+
 ####################### Start Here by Zooil ###########################
 option_file = '/data/options.json'                                                                                             
 if os.path.isfile(option_file):                                                                                                
@@ -54,35 +52,39 @@ if os.path.isfile(option_file):
         SCANNING_INTERVAL = json_data['Advanced']['SCANNING_INTERVAL'] 
         DEFAULT_SPEED = json_data['Advanced']['DEFAULT_SPEED'] 
         CONF_LOGLEVEL = json_data['Advanced']['LOGLEVEL']
+        
+        ####### LIGHT & PLUG #######
         KOCOM_LIGHT_SIZE = {} 
-        dict_data = json_data['KOCOM_LIGHT_SIZE']                                                               
+        dict_data = json_data['KOCOM_LIGHT_SIZE']
         for i in dict_data:
             KOCOM_LIGHT_SIZE[i['name']] = i['number'] 
+        logger.info(f"Light_size:{KOCOM_LIGHT_SIZE}")
         KOCOM_PLUG_SIZE = {} 
         dict_data = json_data['KOCOM_PLUG_SIZE']                                                               
         for i in dict_data:
-            KOCOM_PLUG_SIZE[i['name']] = i['number'] 
-        num = 0
+            KOCOM_PLUG_SIZE[i['name']] = i['number']
+        logger.info(f"Plug_size:{KOCOM_PLUG_SIZE}")
+
+        ####### Index Rooms & Thermos #######
         KOCOM_ROOM = {}
-        list_data = json_data['KOCOM_ROOM']                                                                           
-        for i in list_data:
-            if num < 10:
-                num_key = "0%d" % (num)
+        room_list = json_data['KOCOM_ROOM']                                                                           
+        for idx, room in enumerate(room_list):
+            if idx < 10:
+                num_key = f"0{idx}" 
             else:           
-                num_key = "%d" % (num)
-            KOCOM_ROOM[num_key] = i
-            num += 1
-        num = 0
+                num_key = f"{idx}"
+            KOCOM_ROOM[num_key] = room
+        
         KOCOM_ROOM_THERMOSTAT = {}
-        list_data = json_data['KOCOM_ROOM_THERMOSTAT']                                                                           
-        for i in list_data:
-            if num < 10:
-                num_key = "0%d" % (num)
+        thermo_list = json_data['KOCOM_ROOM_THERMOSTAT']                                                                           
+        for idx, thermo in enumerate(thermo_list):
+            if idx < 10:
+                num_key = f"0{idx}"
             else:
-                num_key = "%d" % (num)
-            KOCOM_ROOM_THERMOSTAT[num_key] = i
-            num += 1         
-####################### End Here by Zooil ########################### 
+                num_key = f"{idx}"
+            KOCOM_ROOM_THERMOSTAT[num_key] = thermo      
+####################### End Here by Zooil ###########################
+####################### Modified ###########################
 ###############################################################################################################
 
 ###############################################################################################################
@@ -133,8 +135,6 @@ GREX_SPEED                  = {'0101': 'low', '0202': 'medium', '0303': 'high', 
 CONF_FILE = 'rs485.conf'
 CONF_LOGFILE = 'rs485.log'
 CONF_LOGNAME = 'RS485'
-CONF_WALLPAD = 'Wallpad'
-CONF_MQTT = 'MQTT'
 CONF_DEVICE = 'RS485'
 CONF_SERIAL = 'Serial'
 CONF_SERIAL_DEVICE = 'SerialDevice'
@@ -153,26 +153,26 @@ log_path = str(log_dir + '/' + CONF_LOGFILE)
 
 class rs485:
     def __init__(self):
-        self._mqtt_config = {}
-        self._port_url = {}
-        self._device_list = {}
-        self._wp_list = {}
-        self.type = None
-
         config = configparser.ConfigParser()
         config.read(conf_path)
+        self._port_url = {}
+        self._device_list = {}
+        
+        self.type = None
 
-        get_conf_wallpad = config.items(CONF_WALLPAD)
+        self._wp_list = {} 
+        get_conf_wallpad = config.items('Wallpad')
         for item in get_conf_wallpad:
             self._wp_list.setdefault(item[0], item[1])
-            logger.info('[CONFIG] {} {} : {}'.format(CONF_WALLPAD, item[0], item[1]))
+            logger.info(f"[CONFIG] Wallpad - {item[0]} : {item[1]}")
 
-        get_conf_mqtt = config.items(CONF_MQTT)
+        self._mqtt_config = {}
+        get_conf_mqtt = config.items('MQTT') # "MQTT"
         for item in get_conf_mqtt:
             self._mqtt_config.setdefault(item[0], item[1])
-            logger.info('[CONFIG] {} {} : {}'.format(CONF_MQTT, item[0], item[1]))
+            logger.info(f'[CONFIG] MQTT - {item[0]} : {item[1]}')
 
-        d_type = config.get(CONF_LOGNAME, 'type').lower()
+        d_type = config.get('RS485', 'type').lower()
         if d_type == 'serial':
             self.type = d_type
             get_conf_serial = config.items(CONF_SERIAL)
