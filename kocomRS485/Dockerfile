@@ -10,8 +10,7 @@ COPY run.sh makeconf.sh rs485.py /
 
 # Install requirements for add-on
 RUN apt-get update && apt-get -y install jq
-RUN python3 -m pip install pyserial && \
-        python3 -m pip install paho-mqtt==1.5.1
+RUN python3 -m pip install pyserial==3.5 paho-mqtt==1.5.1
 
 WORKDIR /share
 
