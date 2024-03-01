@@ -157,7 +157,6 @@ class rs485:
         config.read(conf_path)
         self._port_url = {}
         self._device_list = {}
-        
         self.type = None
 
         self._wp_list = {} 
@@ -173,30 +172,28 @@ class rs485:
             logger.info(f'[CONFIG] MQTT - {item[0]} : {item[1]}')
 
         d_type = config.get('RS485', 'type').lower()
+        d_type = 'serial'
         if d_type == 'serial':
             self.type = d_type
-            get_conf_serial = config.items(CONF_SERIAL)
-            port_i = 1
-            for item in get_conf_serial:
-                if item[1] != '':
-                    self._port_url.setdefault(port_i, item[1])
-                    logger.info('[CONFIG] {} {} : {}'.format(CONF_SERIAL, item[0], item[1]))
-                port_i += 1
+            get_conf_serial = config.items(CONF_SERIAL)  
+            for idx, item in enumerate(get_conf_serial):
+                self._port_url.setdefault(idx+1, item[1]) # "1: /dev/ttyUSB0"
+                logger.info(f'[CONFIG] Serial - {item[0]} : {item[1]}')
 
-            get_conf_serial_device = config.items(CONF_SERIAL_DEVICE)
-            port_i = 1
-            for item in get_conf_serial_device:
-                if item[1] != '':
-                    self._device_list.setdefault(port_i, item[1])
-                    logger.info('[CONFIG] {} {} : {}'.format(CONF_SERIAL_DEVICE, item[0], item[1]))
-                port_i += 1
-            self._con = self.connect_serial(self._port_url)
+            get_conf_serial_device = config.items(CONF_SERIAL_DEVICE)  # 
+            # port_i = 1
+            for idx, item in enumerate(get_conf_serial_device):
+                self._device_list.setdefault(port_i, item[1])
+                logger.info(f'[CONFIG] Serial Dev - {item[0]} : {item[1]}')
+            self._con = self.connect_serial(self._port_url) # call 
+            
         elif d_type == 'socket':
             self.type = d_type
             server = config.get(CONF_SOCKET, 'server')
             port = config.get(CONF_SOCKET, 'port')
             self._socket_device = config.get(CONF_SOCKET_DEVICE, 'device')
             self._con = self.connect_socket(server, port)
+            
         else:
             logger.info('[CONFIG] SERIAL / SOCKET IS NOT VALID')
             logger.info('[CONFIG] EXIT RS485')
@@ -245,7 +242,7 @@ class rs485:
     def _mqtt(self):
         return self._mqtt_config
 
-    def connect_serial(self, port):
+    def connect_serial(self, port): # port is dict
         ser = {}
         opened = 0
         for p in port:
@@ -257,11 +254,13 @@ class rs485:
                     ser[p].autoOpen = False
                     logger.info('Port {} : {}'.format(p, port[p]))
                     opened += 1
+                    logger.info(f'Serial port [#{port[p]}] is accessable.')
                 else:
-                    logger.info('시리얼포트가 열려있지 않습니다.[{}]'.format(port[p]))
+                    logger.info(f'Serial port [#{port[p]}] is not available.')
             except serial.serialutil.SerialException:
                 logger.info('시리얼포트에 연결할 수 없습니다.[{}]'.format(port[p]))
         if opened == 0: return False
+        logger.info(f"Serial settings: {ser}")
         return ser
 
     def connect_socket(self, server, port):
