@@ -19,7 +19,7 @@
   ],
   "options": {
     "RS485": {
-      "type": "Serial"
+      "type": "serial"  ## debug
     },
     "Socket": {
       "server": "192.168.x.x",
@@ -115,7 +115,7 @@
   },
   "schema": {
     "RS485": {
-      "type": "list(Serial|Socket)"
+      "type": "list(serial|socket)"
     },
     "Socket": {
       "server": "str?",
