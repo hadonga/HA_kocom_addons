@@ -1,5 +1,7 @@
 #ARG BUILD_FROM="alpine:latest"
-FROM python:3
+# FROM python:3
+# Define the specified version
+FROM python:3.8.17-alpine3.18  
 
 ENV LANG C.UTF-8
 
