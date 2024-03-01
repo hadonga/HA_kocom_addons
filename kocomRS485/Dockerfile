@@ -1,7 +1,7 @@
 #ARG BUILD_FROM="alpine:latest"
 # FROM python:3
 # Define the specified version
-FROM python:3.8.17-alpine3.18  
+FROM python:3.8-slim
 
 ENV LANG C.UTF-8
 
@@ -11,7 +11,7 @@ COPY run.sh makeconf.sh rs485.py /
 # Install requirements for add-on
 RUN apt-get update && apt-get -y install jq
 RUN python3 -m pip install pyserial && \
-        python3 -m pip install paho-mqtt
+        python3 -m pip install paho-mqtt==1.5.1
 
 WORKDIR /share
 
