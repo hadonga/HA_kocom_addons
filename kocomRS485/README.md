@@ -1,6 +1,25 @@
 # Hass.io Add-on: Kocom Wallpad Controller with RS485 
-
+# MANY THANKS to https://github.com/zooil/kocomRS485
+# Upgrade and check availability for 푸르지오 in 2024. 
 ![Supports aarch64 Architecture][aarch64-shield] ![Supports amd64 Architecture][amd64-shield] ![Supports armhf Architecture][armhf-shield] ![Supports armv7 Architecture][armv7-shield] ![Supports i386 Architecture][i386-shield]
+
+##
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## About
 랜이님이 만든 코콤 월패드 프로그램을 애드온으로 만든 것입니다.
