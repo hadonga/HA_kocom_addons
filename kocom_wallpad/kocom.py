@@ -23,7 +23,7 @@ import configparser
 
 
 # define -------------------------------
-SW_VERSION = '2023.11.10'
+SW_VERSION = '2024.02'
 CONFIG_FILE = 'kocom.cfg'
 BUF_SIZE = 100
 
@@ -550,17 +550,17 @@ def packet_processor(p):
 
 def discovery():
     dev_list = [x.strip() for x in config.get('Device','enabled').split(',')]
-    for t in dev_list:
-        dev = t.split('_')
-        sub = ''
-        if len(dev) > 1:
-            sub = dev[1]
-        publish_discovery(dev[0], sub)
+    for dev in dev_list:
+        if "_" in dev:
+            device, room = dev.split('_')
+        else:
+            device, room = dev, ""
+        publish_discovery(device, room)
     publish_discovery('query')
 
 #https://www.home-assistant.io/docs/mqtt/discovery/
 #<discovery_prefix>/<component>/<object_id>/config
-def publish_discovery(dev, sub=''):
+def publish_discovery(dev, room):
     if dev == 'fan':
         topic = 'homeassistant/fan/kocom_wallpad_fan/config'
         payload = {
@@ -613,6 +613,7 @@ def publish_discovery(dev, sub=''):
         mqttc.publish(topic, json.dumps(payload))
         if logtxt != "" and config.get('Log', 'show_mqtt_publish') == 'True':
             logging.info(logtxt)
+    
     elif dev == 'elevator':
         topic = 'homeassistant/switch/kocom_elevator/config'
         payload = {
@@ -659,19 +660,22 @@ def publish_discovery(dev, sub=''):
         mqttc.publish(topic, json.dumps(payload))
         if logtxt != "" and config.get('Log', 'show_mqtt_publish') == 'True':
             logging.info(logtxt)
+
     elif dev == 'light':
+        # get dev and room
+
         for num in range(1, int(config.get('User', 'light_count'))+1):
             #topic = 'homeassistant/light/kocom_livingroom_light1/config'
-            topic = 'homeassistant/light/kocom_livingroom_light{}/config'.format(num)
+            topic = f"homeassistant/light/kocom_{room}_light{num}/config"
             payload = {
-                'name': 'Kocom Livingroom Light{}'.format(num),
-                'cmd_t': 'kocom/livingroom/light/{}/command'.format(num),
-                'stat_t': 'kocom/livingroom/light/state',
+                'name': f'Kocom {room} Light{num}',
+                'cmd_t': f'kocom/{room}/light/{num}/command',
+                'stat_t': f'kocom/{room}/light/state',
                 'stat_val_tpl': '{{ value_json.light_' + str(num) + ' }}',
                 'pl_on': 'on',
                 'pl_off': 'off',
                 'qos': 0,
-                'uniq_id': '{}_{}_{}{}'.format('kocom', 'wallpad', dev, num),
+                'uniq_id': f'kocom_wallpad_{dev}{num}',
                 'device': {
                     'name': '코콤 스마트 월패드',
                     'ids': 'kocom_smart_wallpad',
@@ -680,10 +684,36 @@ def publish_discovery(dev, sub=''):
                     'sw': SW_VERSION
                 }
             }
-            logtxt='[MQTT Discovery|{}{}] data[{}]'.format(dev, num, topic)
+            logtxt=f'[MQTT Discovery|{dev}{num}] data[{topic}]'
             mqttc.publish(topic, json.dumps(payload))
             if logtxt != "" and config.get('Log', 'show_mqtt_publish') == 'True':
                 logging.info(logtxt)
+
+        ########## only control the lights in living room 
+        # for num in range(1, int(config.get('User', 'light_count'))+1):
+        #     #topic = 'homeassistant/light/kocom_livingroom_light1/config'
+        #     topic = 'homeassistant/light/kocom_livingroom_light{}/config'.format(num)
+        #     payload = {
+        #         'name': 'Kocom Livingroom Light{}'.format(num),
+        #         'cmd_t': 'kocom/livingroom/light/{}/command'.format(num),
+        #         'stat_t': 'kocom/livingroom/light/state',
+        #         'stat_val_tpl': '{{ value_json.light_' + str(num) + ' }}',
+        #         'pl_on': 'on',
+        #         'pl_off': 'off',
+        #         'qos': 0,
+        #         'uniq_id': '{}_{}_{}{}'.format('kocom', 'wallpad', dev, num),
+        #         'device': {
+        #             'name': '코콤 스마트 월패드',
+        #             'ids': 'kocom_smart_wallpad',
+        #             'mf': 'KOCOM',
+        #             'mdl': '스마트 월패드',
+        #             'sw': SW_VERSION
+        #         }
+        #     }
+        #     logtxt='[MQTT Discovery|{}{}] data[{}]'.format(dev, num, topic)
+        #     mqttc.publish(topic, json.dumps(payload))
+        #     if logtxt != "" and config.get('Log', 'show_mqtt_publish') == 'True':
+        #         logging.info(logtxt)
     elif dev == 'thermo':
         num= int(room_h_dic.get(sub))
         #topic = 'homeassistant/climate/kocom_livingroom_thermostat/config'
@@ -699,8 +729,8 @@ def publish_discovery(dev, sub=''):
             'curr_temp_t': 'kocom/room/thermo/{}/state'.format(num),
             'curr_temp_tpl': '{{ value_json.cur_temp }}',
             'modes': ['off', 'heat'],
-            'min_temp': 20,
-            'max_temp': 25,
+            'min_temp': 16,
+            'max_temp': 23,
             'ret': 'false',
             'qos': 0,
             'uniq_id': '{}_{}_{}{}'.format('kocom', 'wallpad', dev, num),
