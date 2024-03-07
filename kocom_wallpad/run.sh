@@ -18,11 +18,11 @@
 SHARE_DIR=/share
 
 if [ ! -f $SHARE_DIR/kocom.cfg ]; then
-	mv /kocom.cfg $SHARE_DIR
+echo "[Info] copy files to the share folder !"
+	cp /kocom.cfg $SHARE_DIR
  	cp /kocom.py $SHARE_DIR
 fi
 
 echo "[Info] Run Kocom Wallpad with RS485..."
-
 cd $SHARE_DIR
-python3 /share/kocom.py
+python3 $SHARE_DIR/kocom.py
