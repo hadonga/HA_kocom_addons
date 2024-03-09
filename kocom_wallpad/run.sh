@@ -12,13 +12,13 @@
 # cd $SHARE_DIR
 # python3 $SHARE_DIR/rs485.py
 
+SHARE_DIR=/share/kocom
 
-SHARE_DIR=/share
-
-echo "[Info] copy files to the share folder!"
+if [ ! -f $SHARE_DIR/kocom.py ]; then
+	echo "[Info] copy files to the share folder!"
 	cp /kocom.cfg $SHARE_DIR
  	cp /kocom.py $SHARE_DIR
-
+fi
 echo "[Info] Run Kocom Wallpad controller with RS485 Ver.2024 ..."
 python3 $SHARE_DIR/kocom.py
 
