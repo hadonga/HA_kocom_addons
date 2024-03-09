@@ -1,6 +1,5 @@
 # Wallpad Controller with RS485 ver. 2024 
-### Fork from Korean Community Add-ons for Hassio
-### Thanks to zooil, clipman, vifrost.
+### Fork from Korean Community Add-ons for Hassio. Thanks to zooil, clipman, vifrost.
 
 ## Kocom Wallpad Controller w/ RS485 for 수원푸르지오
 1. modified and debugged existing repo. (Existing repo is not compatible with our home. )
